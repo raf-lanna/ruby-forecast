@@ -6,7 +6,7 @@ A postal code is optional. Landmarks, coordinates, and regions that do not have 
 
 ## Local setup
 
-Ruby `3.3.5`. The app does not use a relational database. Forecasts live in Redis for 30 minutes.
+Ruby `3.3.13`. The app does not use a relational database. Forecasts live in Redis for 30 minutes.
 
 ### Docker Compose
 
