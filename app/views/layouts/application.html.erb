@@ -20,7 +20,16 @@
   <body>
     <div class="flash-messages">
       <% flash.each do |type, message| %>
-        <div class="flash <%= type %>" role="alert"><%= message %></div>
+        <% if type.to_s == "notice" %>
+          <div class="flash notice" role="status" data-controller="flash" data-flash-timeout-value="6000" data-action="mouseenter->flash#pause mouseleave->flash#resume">
+            <p class="flash__text"><%= message %></p>
+            <button type="button" class="flash__close" data-action="flash#dismiss" aria-label="Dismiss">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+        <% else %>
+          <div class="flash <%= type %>" role="alert"><%= message %></div>
+        <% end %>
       <% end %>
     </div>
     <%= yield %>

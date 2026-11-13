@@ -19,6 +19,8 @@ RSpec.describe "Weather forecasts", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Eiffel Tower")
+    expect(response.body).to include("weather-card__back")
+    expect(response.body).not_to include("weather-back-link")
     expect(response.body).not_to include(AddressQuery::CACHE_MESSAGE)
 
     get weather_forecast_path, params: { address:, days_from_now: 0 }, as: :json
@@ -42,6 +44,8 @@ RSpec.describe "Weather forecasts", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(AddressQuery::CACHE_MESSAGE)
+    expect(response.body).to include('data-controller="flash"')
+    expect(response.body).to include('aria-label="Dismiss"')
     expect(a_request(:get, /nominatim|weatherapi/)).to have_been_made.twice
   end
 

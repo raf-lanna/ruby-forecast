@@ -26,6 +26,9 @@ body {
 }
 
 .flash {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
   padding: 0.75rem 1rem;
   border-radius: 4px;
   margin-bottom: 1rem;
@@ -34,6 +37,42 @@ body {
   color: #842029;
   border: 1px solid #f5c2c7;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.flash__text {
+  margin: 0;
+  flex: 1;
+}
+
+.flash__close {
+  flex: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.65;
+}
+
+.flash__close:hover,
+.flash__close:focus-visible {
+  opacity: 1;
+}
+
+.flash--leaving {
+  opacity: 0;
+  transform: translateY(-0.35rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flash {
+    transition: none;
+  }
 }
 
 .flash.notice {
@@ -228,42 +267,28 @@ body {
   }
 }
 
-.weather-forecast__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+.weather-card__footer {
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
 }
 
-.weather-back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.55rem 1.1rem;
-  border-radius: 999px;
-  border: 1px solid rgba(37, 99, 235, 0.22);
-  background: rgba(37, 99, 235, 0.08);
+.weather-card__back {
   color: #1d4ed8;
   font-weight: 600;
+  font-size: 0.95rem;
   text-decoration: none;
-  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.weather-back-link:hover {
-  background: rgba(37, 99, 235, 0.15);
-  transform: translateY(-1px);
+.weather-card__back:hover,
+.weather-card__back:focus-visible {
+  text-decoration: underline;
 }
 
-.weather-back-link:active {
-  transform: translateY(1px);
-}
-
-@media (max-width: 640px) {
-  .weather-forecast__header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+.weather-forecast__back {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 2rem;
 }
 
 .weather-landing {
