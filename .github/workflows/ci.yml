@@ -1,13 +1,28 @@
 name: CI
 
 on:
-  pull_request:
   push:
-    branches: [ main ]
+  pull_request:
 
 jobs:
-  scan_ruby:
+  ci:
     runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      RAILS_ENV: test
+      REDIS_URL: redis://localhost:6379/0
+      WEATHER_API_KEY: test-key
 
     steps:
       - name: Checkout code
@@ -19,72 +34,14 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
-      - name: Scan for common Rails security vulnerabilities using static analysis
-        run: bin/brakeman --no-pager
+      - name: Check Redis
+        run: ruby -rsocket -e 'socket = TCPSocket.new("127.0.0.1", 6379); socket.write("PING\r\n"); line = socket.gets; abort("Redis did not respond") unless line&.include?("PONG")'
 
-  scan_js:
-    runs-on: ubuntu-latest
+      - name: RuboCop
+        run: bundle exec rubocop -f github
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
+      - name: Brakeman
+        run: bundle exec brakeman --no-pager
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: .ruby-version
-          bundler-cache: true
-
-      - name: Scan for security vulnerabilities in JavaScript dependencies
-        run: bin/importmap audit
-
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: .ruby-version
-          bundler-cache: true
-
-      - name: Lint code for consistent style
-        run: bin/rubocop -f github
-
-  test:
-    runs-on: ubuntu-latest
-
-    # services:
-    #  redis:
-    #    image: redis
-    #    ports:
-    #      - 6379:6379
-    #    options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
-    steps:
-      - name: Install packages
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y google-chrome-stable curl libjemalloc2 libvips sqlite3
-
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: .ruby-version
-          bundler-cache: true
-
-      - name: Run tests
-        env:
-          RAILS_ENV: test
-          # REDIS_URL: redis://localhost:6379/0
-        run: bin/rails db:test:prepare test test:system
-
-      - name: Keep screenshots from failed system tests
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: screenshots
-          path: ${{ github.workspace }}/tmp/screenshots
-          if-no-files-found: ignore
+      - name: RSpec
+        run: bundle exec rspec

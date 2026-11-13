@@ -17,10 +17,11 @@ Rails.application.configure do
   # Enable server timing.
   config.server_timing = true
 
-  # Enable caching so low-level cache (Rails.cache) works during development.
+  # Shared Redis cache so development matches production across Puma workers.
   config.action_controller.perform_caching = true
   config.action_controller.enable_fragment_cache_logging = true
-  config.cache_store = :memory_store
+  require_relative "../redis_cache_store"
+  config.cache_store = :redis_cache_store, RedisCacheStoreConfig.options
   config.public_file_server.headers = { "Cache-Control" => "public, max-age=#{2.days.to_i}" }
 
   # Print deprecation notices to the Rails logger.

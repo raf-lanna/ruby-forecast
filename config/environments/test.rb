@@ -20,10 +20,12 @@ Rails.application.configure do
   # Configure public file server for tests with Cache-Control for performance.
   config.public_file_server.headers = { "Cache-Control" => "public, max-age=#{1.hour.to_i}" }
 
-  # Show full error reports and disable caching.
+  # Show full error reports. Specs use a process-local memory store so TTL
+  # behavior stays deterministic without a Redis service.
   config.consider_all_requests_local = true
-  config.action_controller.perform_caching = false
-  config.cache_store = :null_store
+  config.action_controller.perform_caching = true
+  config.cache_store = :memory_store
+  ENV["GEOCODER_MIN_INTERVAL"] = "0"
 
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable

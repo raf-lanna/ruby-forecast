@@ -1,51 +1,40 @@
 <div class="weather-landing">
   <section class="weather-hero">
-    <p class="weather-hero__badge">Powered by WeatherAPI.com</p>
+    <p class="weather-hero__badge">Nominatim + WeatherAPI.com</p>
     <h1>Check the latest conditions in seconds</h1>
     <p class="weather-hero__lead">
-      Enter any valid US ZIP code or city name to view live conditions including temperature, wind, humidity, and more — refreshed directly from WeatherAPI.com.
+      Search a city, landmark, region, postal code, or coordinates. A postal code is optional — places without one still resolve to a forecast.
     </p>
 
     <ul class="weather-hero__highlights">
-      <li>Real-time data updated every few minutes</li>
+      <li>Identical searches are served from a shared cache for 30 minutes</li>
       <li>Temperature available in Celsius and Fahrenheit</li>
       <li>Includes wind, visibility, UV index, and precipitation</li>
     </ul>
   </section>
 
   <section class="weather-form-card">
-    <h2>Search by ZIP code or city</h2>
-    <p class="weather-form-card__hint">Enter a US ZIP code (12345 or 12345-6789) or the name of a city recognized by WeatherAPI.</p>
+    <h2>Search by address</h2>
+    <p class="weather-form-card__hint">Try “Eiffel Tower”, “São Paulo”, “94105”, or “-23.55, -46.63”. Postal codes are not required.</p>
 
-    <%= form_with model: @forecast_request, url: weather_forecast_path, method: :get, local: true, data: { controller: "weather-form", action: "submit->weather-form#validate" }, html: { class: "zip-form" } do |form| %>
+    <%= form_with url: weather_forecast_path, method: :get, data: { controller: "weather-form", action: "submit->weather-form#validate", turbo: false }, html: { class: "zip-form" } do |form| %>
       <div class="zip-form__group">
-        <%= form.label :zip_code, "US ZIP code", class: "zip-form__label" %>
-        <div class="zip-form__input-wrap">
-          <%= form.text_field :zip_code,
-                              placeholder: "e.g. 90001 or 94105-1234",
-                              value: @forecast_request.zip_code,
-                              inputmode: "numeric",
-                              class: "zip-form__input",
-                              data: { "weather-form-target": "zip", action: "input->weather-form#formatZip input->weather-form#onInput keyup->weather-form#formatZip blur->weather-form#formatZip" } %>
+        <%= form.label :address, "Address", class: "zip-form__label" %>
+        <div class="zip-form__input-wrap zip-form__input-wrap--text">
+          <%= form.text_field :address,
+                              placeholder: "City, landmark, region, or coordinates",
+                              value: @address_query.address,
+                              maxlength: AddressQuery::MAX_LENGTH,
+                              size: 40,
+                              class: "zip-form__input zip-form__input--text",
+                              data: { "weather-form-target": "address", action: "input->weather-form#onInput" } %>
           <button type="submit" class="zip-form__submit">Check weather</button>
         </div>
       </div>
 
       <div class="zip-form__group">
-        <%= form.label :city, "City name", class: "zip-form__label" %>
-        <div class="zip-form__input-wrap zip-form__input-wrap--text">
-          <%= form.text_field :city,
-                              placeholder: "e.g. Los Angeles, CA",
-                              value: @forecast_request.city,
-                              class: "zip-form__input zip-form__input--text",
-                              data: { "weather-form-target": "city", action: "input->weather-form#onInput" } %>
-          <button type="submit" class="zip-form__submit zip-form__submit--secondary">Check weather</button>
-        </div>
-      </div>
-
-      <div class="zip-form__group">
         <span class="zip-form__label">Forecast day (up to 5 days)</span>
-        <% selected_offset = @forecast_request.days_from_now %>
+        <% selected_offset = @address_query.days_from_now %>
         <div class="zip-form__calendar" data-weather-form-target="dayList">
           <% 0.upto(5) do |offset| %>
             <% date = Time.zone.today + offset.days %>
@@ -54,7 +43,7 @@
                         when 1 then "Tomorrow"
                         else "#{offset} days ahead"
                         end %>
-            <label class="zip-form__day-option <%= 'zip-form__day-option--selected' if selected_offset == offset %>" data-weather-form-target="dayOption">
+            <label class="zip-form__day-option <%= "zip-form__day-option--selected" if selected_offset == offset %>" data-weather-form-target="dayOption">
               <%= form.radio_button :days_from_now, offset, checked: selected_offset == offset, class: "zip-form__day-input", data: { action: "change->weather-form#selectDay" } %>
               <span class="zip-form__day-date"><%= date.strftime("%b %d") %></span>
               <span class="zip-form__day-caption"><%= caption %></span>
@@ -63,7 +52,7 @@
         </div>
       </div>
 
-      <p class="zip-form__notice">We send the city or ZIP code you provide directly to WeatherAPI.com and do not store it.</p>
+      <p class="zip-form__notice">The address is sent to OpenStreetMap Nominatim and WeatherAPI.com. Forecasts are cached for 30 minutes and are not stored in a database.</p>
     <% end %>
   </section>
 </div>

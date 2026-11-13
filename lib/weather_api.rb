@@ -1,88 +1,67 @@
-require "net/http"
-require "uri"
 require "json"
+require "uri"
 
 class WeatherApi
-  BASE_URL = "https://api.weatherapi.com/v1".freeze
-  FAILED_STATUS_WEATHER_API_MSG = "Weather API request failed with status".freeze
-  API_KEY_NOT_SET_MSG = "WEATHER_API_KEY is not set".freeze
-  ERROR_CODE_KEY = "code".freeze
-  ERROR_MESSAGE_KEY = "message".freeze
-  HTTP_OPEN_TIMEOUT_SECONDS = 5
-  HTTP_READ_TIMEOUT_SECONDS = 8
+  BASE_URL = "https://api.weatherapi.com/v1"
+  OPEN_TIMEOUT = 5
+  READ_TIMEOUT = 8
+  NOT_FOUND_CODE = 1006
 
-  class Error < StandardError
-    attr_reader :code, :http_status
+  def initialize(http: Http::Client.new(open_timeout: OPEN_TIMEOUT, read_timeout: READ_TIMEOUT))
+    @http = http
+  end
 
-    def initialize(message:, code: nil, http_status: nil)
-      super(message)
-      @code = code
-      @http_status = http_status
+  def fetch(query:, days: nil)
+    response = @http.get(request_uri(query:, days:))
+
+    case response.status
+    when 200
+      parse_json(response.body)
+    when 429
+      raise Providers::Unavailable.new("Weather provider rate limit exceeded", http_status: 429)
+    when 500..599
+      raise Providers::Unavailable.new("Weather provider is unavailable", http_status: response.status)
+    else
+      interpret_failure(response)
     end
-  end
-
-  def initialize(http_client: Net::HTTP)
-    @http_client = http_client
-  end
-
-  def fetch_current(query:)
-    request_json(endpoint: "current", query:, days: nil)
-  end
-
-  def fetch_forecast(query:, days:)
-    request_json(endpoint: "forecast", query:, days:)
   end
 
   private
 
-  def request_json(endpoint:, query:, days:)
-    api_key = fetch_api_key
+  def request_uri(query:, days:)
+    endpoint = days.to_i.positive? ? "forecast" : "current"
     uri = URI.parse("#{BASE_URL}/#{endpoint}.json")
     params = { key: api_key, q: query }
-    params[:days] = days if days.present?
+    params[:days] = days.to_i if days.to_i.positive?
     uri.query = URI.encode_www_form(params)
+    uri
+  end
 
-    response = @http_client.start(
-      uri.host,
-      uri.port,
-      use_ssl: uri.scheme == "https",
-      open_timeout: HTTP_OPEN_TIMEOUT_SECONDS,
-      read_timeout: HTTP_READ_TIMEOUT_SECONDS
-    ) do |http|
-      http.get(uri.request_uri)
-    end
+  def api_key
+    ENV.fetch("WEATHER_API_KEY")
+  rescue KeyError
+    raise Providers::Unavailable.new("Weather provider is not configured")
+  end
 
-    body = response.body
-
-    unless response.is_a?(Net::HTTPSuccess)
-      error_info = parse_error_payload(body)
-
-      message = error_info[:message] || "#{FAILED_STATUS_WEATHER_API_MSG} #{response.code}"
-
-      raise Error.new(
-        message: message,
-        code: error_info[:code],
-        http_status: response.code.to_i
-      )
-    end
-
+  def parse_json(body)
     JSON.parse(body)
+  rescue JSON::ParserError
+    raise Providers::Unavailable.new("Weather provider returned an unreadable response")
   end
 
-  def fetch_api_key
-    ENV.fetch("WEATHER_API_KEY") do
-      raise KeyError, API_KEY_NOT_SET_MSG
+  def interpret_failure(response)
+    error = error_payload(response.body)
+    if error[:code].to_i == NOT_FOUND_CODE
+      raise Providers::NotFound.new("No location matched that address", http_status: response.status)
     end
+
+    raise Providers::Unavailable.new("Weather provider rejected the request", http_status: response.status)
   end
 
-  def parse_error_payload(body)
+  def error_payload(body)
     json = JSON.parse(body)
     error = json.fetch("error", {})
-
-    {
-      code: error[ERROR_CODE_KEY],
-      message: error[ERROR_MESSAGE_KEY]
-    }
+    { code: error["code"], message: error["message"] }
   rescue JSON::ParserError
     {}
   end

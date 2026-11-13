@@ -45,9 +45,6 @@ Rails.application.configure do
   # Can be used together with config.force_ssl for Strict-Transport-Security and secure cookies.
   # config.assume_ssl = true
 
-  # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
-  config.force_ssl = true
-
   # Skip http-to-https redirect for the default health check endpoint.
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
@@ -64,8 +61,13 @@ Rails.application.configure do
   # want to log everything, set the level to "debug".
   config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info")
 
-  # Use a different cache store in production.
-  # config.cache_store = :mem_cache_store
+  # Shared store so every Puma worker and host sees the same forecast entries.
+  require_relative "../redis_cache_store"
+  config.cache_store = :redis_cache_store, RedisCacheStoreConfig.options
+
+  # Docker Compose sets RAILS_FORCE_SSL=false so the app is reachable over HTTP locally.
+  config.force_ssl = ENV.fetch("RAILS_FORCE_SSL", "true") == "true"
+  config.public_file_server.enabled = ENV["RAILS_SERVE_STATIC_FILES"] == "true"
 
   # Use a real queuing backend for Active Job (and separate queues per environment).
   # config.active_job.queue_adapter = :resque

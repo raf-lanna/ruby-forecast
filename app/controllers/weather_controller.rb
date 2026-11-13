@@ -1,49 +1,64 @@
 class WeatherController < ApplicationController
-  before_action :build_forecast_request
-
-  def index; end
+  def index
+    @address_query = AddressQuery.new
+  end
 
   def forecast
-    unless @forecast_request.valid?
-      flash.now[:alert] = @forecast_request.errors.full_messages.first
-      render :index, status: :unprocessable_entity
+    @address_query = build_address_query
+
+    unless @address_query.valid?
+      render_failure(@address_query.errors.full_messages.first, :unprocessable_entity)
       return
     end
 
-    begin
-      result = forecast_fetcher.call(request: @forecast_request)
-      @forecast = result.forecast
-      flash.now[:notice] = ForecastRequest::CACHE_MSG if result.cache_hit
-    rescue WeatherApi::Error => e
-      Rails.logger.warn("Weather API error (code=#{e.code}, status=#{e.http_status}): #{e.message}")
-
-      if e.code.to_i == ForecastRequest::NOT_FOUND_CODE
-        flash.now[:alert] = ForecastRequest::RESPONSE_CODE_1006
-        render :index, status: :not_found
-      else
-        flash.now[:alert] = ForecastRequest::TRY_AGAIN_MSG
-        render :index, status: :bad_gateway
-      end
-    rescue StandardError => e
-      Rails.logger.error("Weather API unexpected error: #{e.message}")
-      flash.now[:alert] = ForecastRequest::TRY_AGAIN_MSG
-      render :index, status: :bad_gateway
-    end
+    @result = Forecasts::Lookup.new(
+      @address_query.address,
+      days: @address_query.days_from_now
+    ).call
+    @forecast = @result.forecast
+    render_forecast
+  rescue Providers::NotFound => e
+    Rails.logger.info("Address lookup missed: #{e.message}")
+    render_failure(AddressQuery::NOT_FOUND_MESSAGE, :unprocessable_entity)
+  rescue Providers::Unavailable => e
+    Rails.logger.warn("Forecast lookup unavailable: #{e.message}")
+    render_failure(AddressQuery::TRY_AGAIN_MESSAGE, :service_unavailable)
   end
 
   private
 
-  def forecast_fetcher
-    @forecast_fetcher ||= Forecasts::FetchForecast.new
+  def build_address_query
+    AddressQuery.new(address: sanitized_address, days_from_now: days_param)
   end
 
-  def build_forecast_request
-    request_params = params.fetch(:forecast_request, {})
+  def sanitized_address
+    raw = params[:address]
+    return "" unless raw.is_a?(String)
 
-    @forecast_request = ForecastRequest.new(
-      zip_code: request_params[:zip_code] || params[:zip_code],
-      city: request_params[:city] || params[:city],
-      days_from_now: request_params[:days_from_now] || params[:days_from_now] || params[:days]
-    )
+    raw.gsub(/[\u0000-\u001F\u007F]/, " ").gsub(/\s+/, " ").strip
+  end
+
+  def days_param
+    params[:days_from_now]
+  end
+
+  def render_forecast
+    respond_to do |format|
+      format.html do
+        flash.now[:notice] = AddressQuery::CACHE_MESSAGE if @result.cache_hit
+        render :forecast, status: :ok
+      end
+      format.json { render json: @result, status: :ok }
+    end
+  end
+
+  def render_failure(message, status)
+    respond_to do |format|
+      format.html do
+        flash.now[:alert] = message
+        render :index, status: status
+      end
+      format.json { render json: { error: message }, status: status }
+    end
   end
 end

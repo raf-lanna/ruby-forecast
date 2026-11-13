@@ -16,8 +16,8 @@ gem "turbo-rails"
 gem "stimulus-rails"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
-# Use Redis adapter to run Action Cable in production
-# gem "redis", ">= 4.0.1"
+# Shared cache store for development and production (Puma workers and hosts).
+gem "redis", ">= 5.0"
 
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
 # gem "kredis"
@@ -41,6 +41,7 @@ group :development, :test do
   gem "pry-rails"
   gem "pry-byebug"
   gem "dotenv-rails"
+  gem "rspec-rails", "~> 7.1"
 
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
@@ -58,4 +59,5 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
+  gem "webmock", "~> 3.24"
 end
