@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      RAILS_ENV: test
+      REDIS_URL: redis://localhost:6379/0
+      WEATHER_API_KEY: test-key
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Check Redis
+        run: ruby -rsocket -e 'socket = TCPSocket.new("127.0.0.1", 6379); socket.write("PING\r\n"); line = socket.gets; abort("Redis did not respond") unless line&.include?("PONG")'
+
+      - name: RuboCop
+        run: bundle exec rubocop -f github
+
+      - name: Brakeman
+        run: bundle exec brakeman --no-pager
+
+      - name: RSpec
+        run: bundle exec rspec

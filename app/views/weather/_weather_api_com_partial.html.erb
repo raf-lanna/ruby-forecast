@@ -1,0 +1,107 @@
+<div class="weather-card">
+  <header class="weather-card__header">
+    <div class="weather-card__location">
+      <h2><%= forecast.location_label %></h2>
+      <% if forecast.forecast_date.present? %>
+        <p class="weather-card__time">
+          Forecast for <time datetime="<%= forecast.forecast_date %>"><%= forecast.forecast_date %></time>
+          <span class="weather-card__day-offset"><%= forecast.day_offset_label %></span>
+        </p>
+      <% elsif forecast.local_time.present? %>
+        <p class="weather-card__time">
+          Local time: <time datetime="<%= forecast.local_time %>"><%= forecast.local_time %></time>
+        </p>
+      <% end %>
+    </div>
+    <% if forecast.condition_icon_url.present? %>
+      <figure class="weather-card__icon">
+        <img src="<%= forecast.condition_icon_url %>" alt="<%= forecast.condition_text %>">
+        <% if forecast.condition_text.present? %>
+          <figcaption><%= forecast.condition_text %></figcaption>
+        <% end %>
+      </figure>
+    <% elsif forecast.condition_text.present? %>
+      <p class="weather-card__condition"><%= forecast.condition_text %></p>
+    <% end %>
+  </header>
+
+  <section class="weather-card__body">
+    <div class="weather-card__temperature">
+      <% if forecast.temperature_f.present? %>
+        <p class="weather-card__temp-main">
+          <span><%= number_with_precision(forecast.temperature_f, precision: 1) %> °F</span>
+        </p>
+      <% end %>
+
+      <% if forecast.max_temperature_f.present? || forecast.min_temperature_f.present? %>
+        <dl class="weather-card__range">
+          <% if forecast.max_temperature_f.present? %>
+            <div class="weather-card__range-item">
+              <dt>High</dt>
+              <dd><span class="weather-pill"><%= number_with_precision(forecast.max_temperature_f, precision: 1) %> °F</span></dd>
+            </div>
+          <% end %>
+          <% if forecast.min_temperature_f.present? %>
+            <div class="weather-card__range-item">
+              <dt>Low</dt>
+              <dd><span class="weather-pill"><%= number_with_precision(forecast.min_temperature_f, precision: 1) %> °F</span></dd>
+            </div>
+          <% end %>
+        </dl>
+      <% end %>
+
+      <% unless forecast.daytime?.nil? %>
+        <p class="weather-card__daylight"><%= forecast.daylight_label %></p>
+      <% end %>
+    </div>
+
+    <dl class="weather-card__metrics">
+      <% if forecast.humidity.present? %>
+        <div>
+          <dt>Humidity</dt>
+          <dd><%= forecast.humidity %>%</dd>
+        </div>
+      <% end %>
+      <% if forecast.wind_kph.present? || forecast.wind_direction.present? %>
+        <div>
+          <dt>Wind</dt>
+          <dd>
+            <% if forecast.wind_kph.present? %>
+              <% wind_mph = forecast.wind_kph.to_f * 0.621371 %>
+              <span><%= number_with_precision(wind_mph, precision: 1) %> mph</span>
+            <% end %>
+            <% if forecast.wind_direction.present? %>
+              <span><%= forecast.wind_direction %></span>
+            <% end %>
+          </dd>
+        </div>
+      <% end %>
+      <% if forecast.precip_inches.present? %>
+        <div>
+          <dt>Precipitation</dt>
+          <dd><%= number_with_precision(forecast.precip_inches, precision: 2) %> in</dd>
+        </div>
+      <% end %>
+      <% if forecast.visibility_miles.present? %>
+        <div>
+          <dt>Visibility</dt>
+          <dd><%= number_with_precision(forecast.visibility_miles, precision: 1) %> miles</dd>
+        </div>
+      <% end %>
+      <% if forecast.uv_index.present? %>
+        <div>
+          <dt>UV Index</dt>
+          <dd><%= number_with_precision(forecast.uv_index, precision: 1) %></dd>
+        </div>
+      <% end %>
+      <% if forecast.last_updated.present? %>
+        <div>
+          <dt>Updated</dt>
+          <dd><%= forecast.last_updated %></dd>
+        </div>
+      <% end %>
+    </dl>
+  </section>
+</div>
+
+

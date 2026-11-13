@@ -1,0 +1,5 @@
+---
+# The app is generated on Rails 7.2. Brakeman reports that release as past
+# support; the rest of the scan still fails the build.
+:skip_checks:
+  - CheckEOLRails

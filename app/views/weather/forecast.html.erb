@@ -1,0 +1,16 @@
+<div class="weather-forecast">
+  <div class="weather-forecast__header">
+    <%= link_to "Back to search", weather_path, class: "weather-back-link" %>
+  </div>
+
+  <% if flash[:alert] %>
+    <p class="alert"><%= flash[:alert] %></p>
+  <% end %>
+
+  <% if @forecast.present? %>
+    <%= render partial: "weather/weather_api_com_partial", locals: { forecast: @forecast } %>
+  <% elsif flash[:alert].blank? %>
+    <p class="alert">No forecast data was returned for the provided location.</p>
+  <% end %>
+</div>
+
