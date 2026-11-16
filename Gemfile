@@ -41,7 +41,7 @@ group :development, :test do
   gem "pry-rails"
   gem "pry-byebug"
   gem "dotenv-rails"
-  gem "rspec-rails", "~> 7.1"
+  gem "rspec-rails", "~> 8.1"
 
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
